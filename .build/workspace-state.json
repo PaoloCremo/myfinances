@@ -1,0 +1,30 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "swiftui-introspect",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/siteline/swiftui-introspect",
+          "name" : "swiftui-introspect"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "807f73ce09a9b9723f12385e592b4e0aaebd3336",
+            "version" : "1.3.0"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "swiftui-introspect"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}
