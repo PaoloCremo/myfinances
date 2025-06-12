@@ -1,13 +1,12 @@
 //
-//  myfinancesApp.swift
-//  myfinances
+// myfinancesApp.swift
+// myfinances
 //
-//  Created by Paolo Cremonese on 2025-06-11.
+// Created by Paolo Cremonese on 2025-06-11.
 //
 
 import SwiftUI
 import Charts
-
 
 struct ExpenseAppView: View {
     @State private var displayText = "Click a button to load data"
@@ -16,11 +15,48 @@ struct ExpenseAppView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var summaryData: [SummaryItem] = []
+    @State private var expenses: [Expense] = []
+    @State private var selectedCurrency: CurrencyType = .eur
+    @State private var showingCurrencyPicker = false
     
     let host = "fastapi.paolocremonese.com"
     
     var body: some View {
         VStack(spacing: 0) {
+            // Header with currency selector
+            HStack {
+                Text("My Finances")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                // Currency selector button
+                Button(action: {
+                    showingCurrencyPicker = true
+                }) {
+                    HStack(spacing: 4) {
+                        Text(selectedCurrency.symbol)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text(selectedCurrency.code)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1))
+                    .foregroundColor(.blue)
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top)
+            
             // Button layout
             HStack(spacing: 20) {
                 ActionButton(title: "Load Expenses") {
@@ -45,30 +81,47 @@ struct ExpenseAppView: View {
             // Content area
             Group {
                 if isLoading {
-                    ProgressView()
+                    VStack(spacing: 12) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            ExpenseSkeletonView()
+                        }
+                    }
+                    .padding()
                 } else if let error = errorMessage {
                     Text(error)
                         .foregroundColor(.red)
                 } else {
                     switch currentView {
                     case .text:
-                        VStack(spacing: 0) {
-                            // Header
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                Text(headerText)
-                                    .font(.system(.body, design: .monospaced))
-                                    .padding(.horizontal)
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(expenses) { expense in
+                                    ExpenseCardView(
+                                        expense: expense,
+                                        selectedCurrency: selectedCurrency
+                                    )
+                                }
                             }
-                            .frame(height: 24)
-                            .background(Color(.systemBackground))
-                            
-                            // Content
-                            ScrollView([.vertical, .horizontal], showsIndicators: true) {
-                                Text(displayText)
-                                    .font(.system(.body, design: .monospaced))
-                                    .textSelection(.enabled)
-                                    .padding(.horizontal)
+                            .padding()
+                        }
+                        .refreshable {
+                            loadExpenses()
+                        }
+                        
+                    case .summary: // Add this new case
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(summaryData) { summaryItem in
+                                    SummaryCardView(
+                                        summaryItem: summaryItem,
+                                        selectedCurrency: selectedCurrency
+                                    )
+                                }
                             }
+                            .padding()
+                        }
+                        .refreshable {
+                            showSummary()
                         }
                         
                     case .plot:
@@ -85,96 +138,120 @@ struct ExpenseAppView: View {
                     }
                 }
             }
+
+            
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(.systemBackground))
+            .background(Color(.systemGray6))
+        }
+        .sheet(isPresented: $showingCurrencyPicker) {
+            CurrencyPickerView(selectedCurrency: $selectedCurrency)
         }
     }
     
     private func loadExpenses() {
         isLoading = true
         errorMessage = nil
-        
         let url = URL(string: "https://\(host)/expenses")!
         
         URLSession.shared.dataTask(with: url) { data, _, error in
-            defer { isLoading = false }
+            defer { 
+                DispatchQueue.main.async {
+                    isLoading = false
+                }
+            }
             
             if let error = error {
-                errorMessage = "Error loading expenses: \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    errorMessage = "Error loading expenses: \(error.localizedDescription)"
+                }
                 return
             }
             
             guard let data = data else {
-                errorMessage = "No data received"
+                DispatchQueue.main.async {
+                    errorMessage = "No data received"
+                }
                 return
             }
             
             do {
                 let result: ExpenseResponse = try JSONDecoder().decode(ExpenseResponse.self, from: data)
-                let dfText = result.expenses.prefix(100).map { $0.description }.joined(separator: "\n")
-                
                 DispatchQueue.main.async {
-                    // headerText = result.columns.joined(separator: "  ")
-                    headerText = Expense.formattedHeader()
-                    displayText = dfText
+                    expenses = Array(result.expenses.prefix(100))
                     currentView = .text
                 }
             } catch {
-                errorMessage = "Error parsing data: \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    errorMessage = "Error parsing data: \(error.localizedDescription)"
+                }
             }
         }.resume()
     }
     
     private func showSummary() {
-        isLoading = true
-        errorMessage = nil
-        
-        let url = URL(string: "https://\(host)/expenses/summary")!
-        
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            defer { isLoading = false }
-            
-            if let error = error {
-                errorMessage = "Error loading summary: \(error.localizedDescription)"
-                return
-            }
-            
-            guard let data = data else {
-                errorMessage = "No data received"
-                return
-            }
-            
-            do {
-                let result = try JSONDecoder().decode(SummaryResponse.self, from: data)
-                let summaryText = result.summary.map { $0.description }.joined(separator: "\n")
-                
-                DispatchQueue.main.async {
-                    headerText = SummaryItem.formattedHeader()
-                    displayText = summaryText
-                    currentView = .text
-                }
-            } catch {
-                errorMessage = "Error parsing summary: \(error.localizedDescription)"
-            }
-        }.resume()
-    }
+         isLoading = true
+         errorMessage = nil
+         let url = URL(string: "https://\(host)/expenses/summary")!
+         
+         URLSession.shared.dataTask(with: url) { data, _, error in
+             defer { 
+                 DispatchQueue.main.async {
+                     isLoading = false
+                 }
+             }
+             
+             if let error = error {
+                 DispatchQueue.main.async {
+                     errorMessage = "Error loading summary: \(error.localizedDescription)"
+                 }
+                 return
+             }
+             
+             guard let data = data else {
+                 DispatchQueue.main.async {
+                     errorMessage = "No data received"
+                 }
+                 return
+             }
+             
+             do {
+                 let result = try JSONDecoder().decode(SummaryResponse.self, from: data)
+                 DispatchQueue.main.async {
+                     summaryData = result.summary
+                     currentView = .summary // Change this to a new view type
+                 }
+             } catch {
+                 DispatchQueue.main.async {
+                     errorMessage = "Error parsing summary: \(error.localizedDescription)"
+                 }
+             }
+         }.resume()
+     }
+
     
     private func showPlot() {
         isLoading = true
         errorMessage = nil
-        
         let url = URL(string: "https://\(host)/expenses/summary")!
         
         URLSession.shared.dataTask(with: url) { data, _, error in
-            defer { isLoading = false }
+            defer { 
+                DispatchQueue.main.async {
+                    isLoading = false
+                }
+            }
             
             if let error = error {
-                errorMessage = "Error loading plot data: \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    errorMessage = "Error loading plot data: \(error.localizedDescription)"
+                }
                 return
             }
             
             guard let data = data else {
-                errorMessage = "No data received"
+                DispatchQueue.main.async {
+                    errorMessage = "No data received"
+                }
                 return
             }
             
@@ -185,7 +262,9 @@ struct ExpenseAppView: View {
                     currentView = .plot
                 }
             } catch {
-                errorMessage = "Error parsing plot data: \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    errorMessage = "Error parsing plot data: \(error.localizedDescription)"
+                }
             }
         }.resume()
     }
@@ -193,12 +272,417 @@ struct ExpenseAppView: View {
     private func clearDisplay() {
         displayText = "Display cleared. Click a button to load data."
         headerText = ""
+        expenses = []
+        summaryData = []
         currentView = .text
     }
+}
 
+// MARK: - Currency Type Enum
+
+enum CurrencyType: String, CaseIterable, Identifiable {
+    case eur = "EUR"
+    case usd = "USD"
+    case cad = "CAD"
+    case pln = "PLN"
+    case other = "OTHER"
+    
+    var id: String { rawValue }
+    
+    var code: String { rawValue }
+    
+    var symbol: String {
+        switch self {
+        case .eur: return "€"
+        case .usd: return "$"
+        case .cad: return "CA$"
+        case .pln: return "zł"
+        case .other: return "¤"
+        }
+    }
+    
+    var name: String {
+        switch self {
+        case .eur: return "Euro"
+        case .usd: return "US Dollar"
+        case .cad: return "Canadian Dollar"
+        case .pln: return "Polish Złoty"
+        case .other: return "Other Currency"
+        }
+    }
+    
+    var flag: String {
+        switch self {
+        case .eur: return "🇪🇺"
+        case .usd: return "🇺🇸"
+        case .cad: return "🇨🇦"
+        case .pln: return "🇵🇱"
+        case .other: return "🌍"
+        }
+    }
+    
+    func getValue(from expense: Expense) -> Double? {
+        switch self {
+        case .eur: return expense.eur
+        case .usd: return expense.usd
+        case .cad: return expense.cad
+        case .pln: return expense.pln
+        case .other: return expense.other
+        }
+    }
+}
+
+// MARK: - Currency Picker View
+
+struct CurrencyPickerView: View {
+    @Binding var selectedCurrency: CurrencyType
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List(CurrencyType.allCases) { currency in
+                Button(action: {
+                    selectedCurrency = currency
+                    dismiss()
+                }) {
+                    HStack(spacing: 12) {
+                        Text(currency.flag)
+                            .font(.title2)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(currency.name)
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Text("\(currency.code) • \(currency.symbol)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        if selectedCurrency == currency {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .navigationTitle("Select Currency")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Modern UI Components
+
+struct ExpenseCardView: View {
+    let expense: Expense
+    let selectedCurrency: CurrencyType
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Main card content (always visible)
+            HStack(spacing: 12) {
+                // Category icon with colored background
+                Image(systemName: categoryIcon(for: expense.type))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(categoryColor(for: expense.type))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(expense.descriptionText)
+                        .font(.headline)
+                        .fontWeight(.medium)
+                        .lineLimit(isExpanded ? nil : 2)
+                        .multilineTextAlignment(.leading)
+                    
+                    HStack(spacing: 8) {
+                        Text(expense.type)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(categoryColor(for: expense.type).opacity(0.2))
+                            .foregroundColor(categoryColor(for: expense.type))
+                            .cornerRadius(4)
+                        
+                        Text(formatDate(expense.date))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    // Show amount in selected currency
+                    Text(formatAmount(selectedCurrency.getValue(from: expense), currency: selectedCurrency.symbol))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(amountColor(selectedCurrency.getValue(from: expense)))
+                    
+                    // Show selected currency code
+                    Text(selectedCurrency.code)
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(3)
+                    
+                    if let bank = expense.bank, !bank.isEmpty {
+                        Text(bank)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(3)
+                    }
+                    
+                    // Expand/Collapse indicator
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
+            }
+            .padding(16)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }
+            
+            // Expandable currency details
+            if isExpanded {
+                VStack(spacing: 0) {
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    VStack(spacing: 12) {
+                        // Currency grid
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 12) {
+                            ForEach(currencyData, id: \.currency.code) { data in
+                                CurrencyItemView(
+                                    currency: data.currency,
+                                    amount: data.amount,
+                                    isPrimary: data.currency == selectedCurrency
+                                )
+                            }
+                        }
+                        
+                        // Daily total if available
+                        if let dailyTotal = expense.daily_total {
+                            HStack {
+                                Text("Daily Total:")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                                
+                                Text(formatAmount(dailyTotal, currency: "€"))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.top, 8)
+                            .padding(.horizontal, 4)
+                        }
+                    }
+                    .padding(16)
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity.combined(with: .move(edge: .top))
+                ))
+            }
+        }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+    }
+    
+    // Updated computed property to use CurrencyType
+    private var currencyData: [(currency: CurrencyType, amount: Double?)] {
+        CurrencyType.allCases.compactMap { currencyType in
+            let amount = currencyType.getValue(from: expense)
+            return (amount != nil && amount != 0) ? (currencyType, amount) : nil
+        }
+    }
+    
+    private func categoryIcon(for type: String) -> String {
+        switch type.lowercased() {
+        case "food", "restaurant", "groceries":
+            return "fork.knife"
+        case "transport", "travel":
+            return "car.fill"
+        case "shopping", "retail":
+            return "bag.fill"
+        case "entertainment":
+            return "tv.fill"
+        case "health", "medical":
+            return "cross.fill"
+        case "utilities", "bills":
+            return "bolt.fill"
+        case "income", "salary":
+            return "plus.circle.fill"
+        default:
+            return "creditcard.fill"
+        }
+    }
+    
+    private func categoryColor(for type: String) -> Color {
+        switch type.lowercased() {
+        case "food", "restaurant", "groceries":
+            return .orange
+        case "transport", "travel":
+            return .blue
+        case "shopping", "retail":
+            return .purple
+        case "entertainment":
+            return .pink
+        case "health", "medical":
+            return .red
+        case "utilities", "bills":
+            return .yellow
+        case "income", "salary":
+            return .green
+        default:
+            return .gray
+        }
+    }
+    
+    private func formatAmount(_ amount: Double?, currency: String) -> String {
+        guard let amount = amount else { return "\(currency)0.00" }
+        return String(format: "\(currency)%.2f", amount)
+    }
+    
+    private func amountColor(_ amount: Double?) -> Color {
+        guard let amount = amount else { return .primary }
+        return amount >= 0 ? .green : .primary
+    }
+    
+    private func formatDate(_ dateString: String) -> String {
+        return dateString
+    }
+}
+
+// MARK: - Updated Currency Item View
+
+struct CurrencyItemView: View {
+    let currency: CurrencyType
+    let amount: Double?
+    let isPrimary: Bool
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(currency.flag)
+                        .font(.caption)
+                    
+                    Text(currency.code)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(isPrimary ? .blue : .secondary)
+                }
+                
+                Text(formatAmount(amount, symbol: currency.symbol))
+                    .font(.subheadline)
+                    .fontWeight(isPrimary ? .semibold : .medium)
+                    .foregroundColor(isPrimary ? .primary : .secondary)
+            }
+            
+            Spacer()
+            
+            if isPrimary {
+                Image(systemName: "star.fill")
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(12)
+        .background(isPrimary ? Color.blue.opacity(0.1) : Color(.systemGray6))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isPrimary ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
+    }
+    
+    private func formatAmount(_ amount: Double?, symbol: String) -> String {
+        guard let amount = amount else { return "\(symbol)0.00" }
+        return String(format: "\(symbol)%.2f", amount)
+    }
+}
+
+struct ExpenseSkeletonView: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Color(.systemGray4))
+                .frame(width: 44, height: 44)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Rectangle()
+                    .fill(Color(.systemGray4))
+                    .frame(height: 16)
+                    .cornerRadius(4)
+                
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 120, height: 12)
+                    .cornerRadius(3)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Rectangle()
+                    .fill(Color(.systemGray4))
+                    .frame(width: 60, height: 16)
+                    .cornerRadius(4)
+                
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 40, height: 10)
+                    .cornerRadius(3)
+            }
+        }
+        .padding(16)
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .opacity(isAnimating ? 0.6 : 1.0)
+        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
+        .onAppear {
+            isAnimating = true
+        }
+    }
 }
 
 // MARK: - Helper Components
+
 struct ActionButton: View {
     let title: String
     let action: () -> Void
@@ -206,22 +690,25 @@ struct ActionButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
+                .font(.system(.body, weight: .medium))
                 .frame(maxWidth: .infinity)
-                .padding(8)
+                .padding(12)
                 .background(Color.blue)
                 .foregroundColor(.white)
-                .cornerRadius(8)
+                .cornerRadius(10)
         }
     }
 }
 
 // MARK: - Data Models
+
 struct ExpenseResponse: Codable {
     let columns: [String]
     let expenses: [Expense]
 }
 
-struct Expense: Codable, CustomStringConvertible {
+struct Expense: Codable, CustomStringConvertible, Identifiable {
+    let id = UUID()
     let date: String
     let type: String
     let descriptionText: String
@@ -232,12 +719,12 @@ struct Expense: Codable, CustomStringConvertible {
     let other: Double?
     let daily_total: Double?
     let bank: String?
-
+    
     enum CodingKeys: String, CodingKey {
         case date, type, eur, usd, cad, pln, other, daily_total, bank
         case descriptionText = "description"
     }
-
+    
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
         date = try container.decode(String.self)
@@ -250,6 +737,19 @@ struct Expense: Codable, CustomStringConvertible {
         other = try container.decodeIfPresent(Double.self)
         daily_total = try container.decodeIfPresent(Double.self)
         bank = try container.decodeIfPresent(String.self)
+    }
+    
+    var description: String {
+        return [
+            date.padding(toLength: Self.columnWidths[0], withPad: " ", startingAt: 0),
+            type.padding(toLength: Self.columnWidths[1], withPad: " ", startingAt: 0),
+            descriptionText.padding(toLength: Self.columnWidths[2], withPad: " ", startingAt: 0),
+            String(format: "%.2f€", eur ?? 0).padding(toLength: Self.columnWidths[3], withPad: " ", startingAt: 0),
+            String(format: "%.2f$", usd ?? 0).padding(toLength: Self.columnWidths[4], withPad: " ", startingAt: 0),
+            String(format: "%.2fCA$", cad ?? 0).padding(toLength: Self.columnWidths[5], withPad: " ", startingAt: 0),
+            String(format: "%.2f", daily_total ?? 0).padding(toLength: Self.columnWidths[6], withPad: " ", startingAt: 0),
+            (bank ?? "").padding(toLength: Self.columnWidths[7], withPad: " ", startingAt: 0)
+        ].joined(separator: " | ")
     }
 }
 
@@ -272,9 +772,9 @@ struct SummaryItem: Codable, Identifiable, CustomStringConvertible {
         case pct
         case numberOfItems = "n_items"
     }
-
+    
     var description: String {
-        [
+        return [
             type.padding(toLength: Self.columnWidths[0], withPad: " ", startingAt: 0),
             String(format: "%.2f", totalAmount).padding(toLength: Self.columnWidths[1], withPad: " ", startingAt: 0),
             String(format: "%.2f", amountPerMonth).padding(toLength: Self.columnWidths[2], withPad: " ", startingAt: 0),
@@ -284,10 +784,265 @@ struct SummaryItem: Codable, Identifiable, CustomStringConvertible {
     }
 }
 
+// MARK: - Summary Card View
+
+struct SummaryCardView: View {
+    let summaryItem: SummaryItem
+    let selectedCurrency: CurrencyType
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Main card content (always visible)
+            HStack(spacing: 12) {
+                // Category icon with colored background
+                Image(systemName: categoryIcon(for: summaryItem.type))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(categoryColor(for: summaryItem.type))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(summaryItem.type.capitalized)
+                        .font(.headline)
+                        .fontWeight(.medium)
+                    
+                    HStack(spacing: 8) {
+                        Text("\(summaryItem.numberOfItems) items")
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.blue)
+                            .cornerRadius(4)
+                        
+                        Text("\(String(format: "%.1f", summaryItem.pct))%")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    // Show total amount in selected currency
+                    Text(formatAmount(convertAmount(summaryItem.totalAmount, to: selectedCurrency), currency: selectedCurrency.symbol))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Total")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    // Expand/Collapse indicator
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
+            }
+            .padding(16)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }
+            
+            // Expandable details
+            if isExpanded {
+                VStack(spacing: 0) {
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    VStack(spacing: 16) {
+                        // Summary statistics grid
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 12) {
+                            SummaryStatView(
+                                title: "Monthly Average",
+                                value: formatAmount(convertAmount(summaryItem.amountPerMonth, to: selectedCurrency), currency: selectedCurrency.symbol),
+                                icon: "calendar",
+                                color: .green
+                            )
+                            
+                            SummaryStatView(
+                                title: "Percentage",
+                                value: "\(String(format: "%.1f", summaryItem.pct))%",
+                                icon: "chart.pie",
+                                color: .orange
+                            )
+                            
+                            SummaryStatView(
+                                title: "Total Items",
+                                value: "\(summaryItem.numberOfItems)",
+                                icon: "number",
+                                color: .purple
+                            )
+                            
+                            SummaryStatView(
+                                title: "Avg per Item",
+                                value: formatAmount(convertAmount(summaryItem.totalAmount / Double(summaryItem.numberOfItems), to: selectedCurrency), currency: selectedCurrency.symbol),
+                                icon: "divide",
+                                color: .blue
+                            )
+                        }
+                        
+                        // Currency breakdown if needed
+                        if selectedCurrency != .eur {
+                            VStack(spacing: 8) {
+                                HStack {
+                                    Text("Currency Breakdown")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Spacer()
+                                }
+                                
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Original (EUR)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Text(formatAmount(summaryItem.totalAmount, currency: "€"))
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text(selectedCurrency.code)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Text(formatAmount(convertAmount(summaryItem.totalAmount, to: selectedCurrency), currency: selectedCurrency.symbol))
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                    }
+                                }
+                                .padding(12)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            }
+                        }
+                    }
+                    .padding(16)
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity.combined(with: .move(edge: .top))
+                ))
+            }
+        }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+    }
+    
+    private func categoryIcon(for type: String) -> String {
+        switch type.lowercased() {
+        case "food", "restaurant", "groceries":
+            return "fork.knife"
+        case "transport", "travel":
+            return "car.fill"
+        case "shopping", "retail":
+            return "bag.fill"
+        case "entertainment":
+            return "tv.fill"
+        case "health", "medical":
+            return "cross.fill"
+        case "utilities", "bills", "rent":
+            return "bolt.fill"
+        case "income", "salary":
+            return "plus.circle.fill"
+        default:
+            return "creditcard.fill"
+        }
+    }
+    
+    private func categoryColor(for type: String) -> Color {
+        switch type.lowercased() {
+        case "food", "restaurant", "groceries":
+            return .orange
+        case "transport", "travel":
+            return .blue
+        case "shopping", "retail":
+            return .purple
+        case "entertainment":
+            return .pink
+        case "health", "medical":
+            return .red
+        case "utilities", "bills", "rent":
+            return .yellow
+        case "income", "salary":
+            return .green
+        default:
+            return .gray
+        }
+    }
+    
+    private func formatAmount(_ amount: Double?, currency: String) -> String {
+        guard let amount = amount else { return "\(currency)0.00" }
+        return String(format: "\(currency)%.2f", amount)
+    }
+    
+    // Simple currency conversion (you might want to use real exchange rates)
+    private func convertAmount(_ eurAmount: Double, to currency: CurrencyType) -> Double {
+        switch currency {
+        case .eur: return eurAmount
+        case .usd: return eurAmount * 1.1 // Approximate conversion
+        case .cad: return eurAmount * 1.5
+        case .pln: return eurAmount * 4.3
+        case .other: return eurAmount
+        }
+    }
+}
+
+// MARK: - Summary Stat View
+
+struct SummaryStatView: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(color)
+            
+            Text(value)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
+
 // MARK: - View Types
+
 enum ContentViewType {
     case text
     case plot
+    case summary
 }
 
 extension Expense {
@@ -301,9 +1056,9 @@ extension Expense {
         12, // daily_total
         10  // bank
     ]
-
+    
     static func formattedHeader() -> String {
-        [
+        return [
             "date".padding(toLength: columnWidths[0], withPad: " ", startingAt: 0),
             "type".padding(toLength: columnWidths[1], withPad: " ", startingAt: 0),
             "description".padding(toLength: columnWidths[2], withPad: " ", startingAt: 0),
@@ -312,19 +1067,6 @@ extension Expense {
             "cad".padding(toLength: columnWidths[5], withPad: " ", startingAt: 0),
             "daily_total".padding(toLength: columnWidths[6], withPad: " ", startingAt: 0),
             "bank".padding(toLength: columnWidths[7], withPad: " ", startingAt: 0)
-        ].joined(separator: " | ")
-    }
-
-    var description: String {
-        [
-            date.padding(toLength: Self.columnWidths[0], withPad: " ", startingAt: 0),
-            type.padding(toLength: Self.columnWidths[1], withPad: " ", startingAt: 0),
-            descriptionText.padding(toLength: Self.columnWidths[2], withPad: " ", startingAt: 0),
-            String(format: "%.2f€", eur ?? 0).padding(toLength: Self.columnWidths[3], withPad: " ", startingAt: 0),
-            String(format: "%.2f$", usd ?? 0).padding(toLength: Self.columnWidths[4], withPad: " ", startingAt: 0),
-            String(format: "%.2fCA$", cad ?? 0).padding(toLength: Self.columnWidths[5], withPad: " ", startingAt: 0),
-            String(format: "%.2f", daily_total ?? 0).padding(toLength: Self.columnWidths[6], withPad: " ", startingAt: 0),
-            (bank ?? "").padding(toLength: Self.columnWidths[7], withPad: " ", startingAt: 0)
         ].joined(separator: " | ")
     }
 }
@@ -339,7 +1081,7 @@ extension SummaryItem {
     ]
     
     static func formattedHeader() -> String {
-        [
+        return [
             "Category".padding(toLength: columnWidths[0], withPad: " ", startingAt: 0),
             "Total (€)".padding(toLength: columnWidths[1], withPad: " ", startingAt: 0),
             "Monthly (€)".padding(toLength: columnWidths[2], withPad: " ", startingAt: 0),
