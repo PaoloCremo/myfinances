@@ -25,7 +25,7 @@ struct ExpenseCardView: View {
                     
                     HStack(spacing: 8) {
                         Text(expense.type)
-                            .font(.caption)
+                            .font(.caption2)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(Color.categoryColor(for: expense.type).opacity(0.2))
@@ -33,7 +33,7 @@ struct ExpenseCardView: View {
                             .cornerRadius(4)
                         
                         Text(DateFormatter.formatExpenseDate(expense.date))
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -44,7 +44,7 @@ struct ExpenseCardView: View {
                     Text(CurrencyConverter.formatAmount(selectedCurrency.getValue(from: expense), currency: selectedCurrency.symbol))
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .foregroundColor(CurrencyConverter.amountColor(selectedCurrency.getValue(from: expense)))
+                        .foregroundColor(CurrencyConverter.amountColorExp(selectedCurrency.getValue(from: expense)))
                     
                     Text(selectedCurrency.code)
                         .font(.caption2)
