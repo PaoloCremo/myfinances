@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct ExpenseCardView: View {
-    let expense: Expense
+struct IncomeCardView: View {
+    let income: Income
     let selectedCurrency: CurrencyType
     @State private var isExpanded = false
     
@@ -10,29 +10,29 @@ struct ExpenseCardView: View {
             // Main card content
             HStack(spacing: 12) {
                 // Category icon
-                Image(systemName: Icon.categoryIcon(for: expense.type))
+                Image(systemName: Icon.categoryIcon(for: income.type))
                     .foregroundColor(.white)
                     .frame(width: 44, height: 44)
-                    .background(Color.categoryColor(for: expense.type))
+                    .background(Color.categoryColor(for: income.type))
                     .clipShape(Circle())
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(expense.descriptionText)
+                    Text(income.descriptionText)
                         .font(.headline)
                         .fontWeight(.medium)
                         .lineLimit(isExpanded ? nil : 2)
                         .multilineTextAlignment(.leading)
                     
                     HStack(spacing: 8) {
-                        Text(expense.type)
+                        Text(income.type)
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(Color.categoryColor(for: expense.type).opacity(0.2))
-                            .foregroundColor(Color.categoryColor(for: expense.type))
+                            .background(Color.categoryColor(for: income.type).opacity(0.2))
+                            .foregroundColor(Color.categoryColor(for: income.type))
                             .cornerRadius(4)
                         
-                        Text(DateFormatter.formatExpenseDate(expense.date))
+                        Text(DateFormatter.formatExpenseDate(income.date))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -41,10 +41,10 @@ struct ExpenseCardView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(CurrencyConverter.formatAmount(selectedCurrency.getValue(from: expense), currency: selectedCurrency.symbol))
+                    Text(CurrencyConverter.formatAmount(selectedCurrency.getValue(from: income), currency: selectedCurrency.symbol))
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .foregroundColor(CurrencyConverter.amountColor(selectedCurrency.getValue(from: expense)))
+                        .foregroundColor(CurrencyConverter.amountColorIn(selectedCurrency.getValue(from: income)))
                     
                     Text(selectedCurrency.code)
                         .font(.caption2)
@@ -54,7 +54,7 @@ struct ExpenseCardView: View {
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(3)
                     
-                    if let bank = expense.bank, !bank.isEmpty {
+                    if let bank = income.bank, !bank.isEmpty {
                         Text(bank)
                             .font(.caption2)
                             .foregroundColor(.secondary)
@@ -80,7 +80,7 @@ struct ExpenseCardView: View {
             
             // Expandable currency details
             if isExpanded {
-                ExpandedCurrencyView(expense: expense, selectedCurrency: selectedCurrency)
+                ExpandedCurrencyView2(income: income, selectedCurrency: selectedCurrency)
             }
         }
         .background(Color(.systemBackground))
@@ -90,8 +90,8 @@ struct ExpenseCardView: View {
     }
 }
 
-struct ExpandedCurrencyView: View {
-    let expense: Expense
+struct ExpandedCurrencyView2: View {
+    let income: Income
     let selectedCurrency: CurrencyType
     
     var body: some View {
@@ -113,7 +113,7 @@ struct ExpandedCurrencyView: View {
                     }
                 }
                 
-                if let dailyTotal = expense.daily_total {
+                if let dailyTotal = income.daily_total {
                     HStack {
                         Text("Daily Total:")
                             .font(.subheadline)
@@ -139,7 +139,7 @@ struct ExpandedCurrencyView: View {
     
     private var currencyData: [(currency: CurrencyType, amount: Double?)] {
         CurrencyType.allCases.compactMap { currencyType in
-            let amount = currencyType.getValue(from: expense)
+            let amount = currencyType.getValue(from: income)
             return (amount != nil && amount != 0) ? (currencyType, amount) : nil
         }
     }

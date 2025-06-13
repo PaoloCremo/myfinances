@@ -42,7 +42,7 @@ struct LandingPage: View {
                             title: "Show Summary",
                             subtitle: "Get insights on your spending",
                             icon: "chart.bar.doc.horizontal",
-                            color: .green
+                            color: .orange
                         )
                     }
                     
@@ -50,8 +50,17 @@ struct LandingPage: View {
                         FeatureButton(
                             title: "Show Plot",
                             subtitle: "Visualize your data",
-                            icon: "chart.line.uptrend.xyaxis",
+                            icon: "chart.line.downtrend.xyaxis",
                             color: .purple
+                        )
+                    }
+
+                    NavigationLink(destination: ExpenseAppView(initialAction: "loadIncome")) {
+                        FeatureButton(
+                            title: "Load Income",
+                            subtitle: "Visualize your data",
+                            icon: "chart.line.uptrend.xyaxis",
+                            color: .green
                         )
                     }
                 }

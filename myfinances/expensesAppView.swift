@@ -44,6 +44,8 @@ struct ExpenseAppView: View {
                 viewModel.showSummary()
             case "showPlot":
                 viewModel.showPlot()
+            case "loadIncome":
+                viewModel.loadIncome()
             default:
                 break
             }
@@ -104,6 +106,10 @@ struct ActionButtonsView: View {
             ActionButton(title: "Show Plot") {
                 viewModel.showPlot()
             }
+
+            ActionButton(title: "Load Income") {
+                viewModel.loadIncome()
+            }
             
             ActionButton(title: "Clear") {
                 viewModel.clearDisplay()
@@ -131,6 +137,8 @@ struct ContentView: View {
                     SummaryListView(viewModel: viewModel)
                 case .plot:
                     PlotView(viewModel: viewModel)
+                case .income:
+                    IncomeListView(viewModel: viewModel)
                 }
             }
         }

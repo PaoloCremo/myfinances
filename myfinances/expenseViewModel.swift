@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 class ExpenseViewModel: ObservableObject {
     @Published var expenses: [Expense] = []
+    @Published var income: [Income] = []
     @Published var summaryData: [SummaryItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -24,6 +25,9 @@ class ExpenseViewModel: ObservableObject {
         case "showPlot":
             selectedCurrency = .eur
             showPlot()
+        case "loadIncome":
+            selectedCurrency = .cad
+            loadIncome()
         default:
             break
         }
@@ -74,11 +78,28 @@ class ExpenseViewModel: ObservableObject {
             isLoading = false
         }
     }
+
+    func loadIncome() {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let result = try await networkManager.fetchIncome()
+                income = Array(result.prefix(100))
+                currentView = .income
+            } catch {
+                errorMessage = "Error loading incomes: \(error.localizedDescription)"
+            }
+            isLoading = false
+        }
+    }
     
     func clearDisplay() {
         expenses = []
         summaryData = []
         currentView = .text
+        income = []
         errorMessage = nil
     }
 }

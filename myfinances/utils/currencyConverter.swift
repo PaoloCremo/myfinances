@@ -81,7 +81,12 @@ class CurrencyConverter: ObservableObject {
         return formatter.string(from: NSNumber(value: amount)) ?? "\(currency)0.00"
     }
     
-    static func amountColor(_ amount: Double?) -> Color {
+    static func amountColorExp(_ amount: Double?) -> Color {
+        guard let amount = amount else { return .green }
+        return amount >= 0 ? .red : .green
+    }
+    
+    static func amountColorIn(_ amount: Double?) -> Color {
         guard let amount = amount else { return .primary }
         return amount >= 0 ? .green : .primary
     }
