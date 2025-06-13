@@ -1,33 +1,57 @@
 import SwiftUI
 
 struct ExpenseAppView: View {
-    @StateObject private var viewModel = ExpenseViewModel()
+    @ObservedObject private var viewModel = ExpenseViewModel()
     @State private var showingCurrencyPicker = false
     
+    let initialAction: String
+    
+    // Add this initializer
+    init(initialAction: String) {
+        self.initialAction = initialAction
+    }
+    
     var body: some View {
-        VStack(spacing: 0) {
+        VStack {
             // Header with currency selector
-            HeaderView(
-                selectedCurrency: viewModel.selectedCurrency,
-                onCurrencyTap: { showingCurrencyPicker = true }
-            )
+             HeaderView(
+                 selectedCurrency: viewModel.selectedCurrency,
+                 onCurrencyTap: { showingCurrencyPicker = true }
+             )
+             
+             CurrencyStatusView(converter: viewModel.currencyConverter)
+                             .padding(.horizontal)
             
-            CurrencyStatusView(converter: viewModel.currencyConverter)
-                            .padding(.horizontal)
-            
-            // Button layout
             ActionButtonsView(viewModel: viewModel)
             
-            // Content area
+            // content
             ContentView(viewModel: viewModel)
+            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGray6))
         .sheet(isPresented: $showingCurrencyPicker) {
             CurrencyPickerView(selectedCurrency: $viewModel.selectedCurrency)
         }
+        .navigationTitle("My Finances")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.initializeWith(action: initialAction)
+            switch initialAction {
+            case "loadExpenses":
+                viewModel.loadExpenses()
+            case "showSummary":
+                viewModel.showSummary()
+            case "showPlot":
+                viewModel.showPlot()
+            default:
+                break
+            }
+        }
     }
+
 }
+
 
 struct HeaderView: View {
     let selectedCurrency: CurrencyType

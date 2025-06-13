@@ -13,6 +13,22 @@ class ExpenseViewModel: ObservableObject {
     
     private let networkManager = NetworkManager()
     
+    func initializeWith(action: String) {
+        switch action {
+        case "loadExpenses":
+            selectedCurrency = .cad
+            loadExpenses()
+        case "showSummary":
+            selectedCurrency = .eur
+            showSummary()
+        case "showPlot":
+            selectedCurrency = .eur
+            showPlot()
+        default:
+            break
+        }
+    }
+    
     func loadExpenses() {
         isLoading = true
         errorMessage = nil
