@@ -49,10 +49,21 @@ enum CurrencyType: String, CaseIterable, Identifiable {
         case .other: return expense.other
         }
     }
+    
+    func getValue(from income: Income) -> Double? {
+        switch self {
+        case .eur: return income.eur
+        case .usd: return income.usd
+        case .cad: return income.cad
+        case .pln: return income.pln
+        case .other: return income.other
+        }
+    }
 }
 
 enum ContentViewType {
     case text
+    case income
     case plot
     case summary
 }
