@@ -22,8 +22,6 @@ struct ExpenseAppView: View {
              CurrencyStatusView(converter: viewModel.currencyConverter)
                              .padding(.horizontal)
             
-            ActionButtonsView(viewModel: viewModel)
-            
             // content
             ContentView(viewModel: viewModel)
             Spacer()
@@ -87,36 +85,6 @@ struct HeaderView: View {
         }
         .padding(.horizontal)
         .padding(.top)
-    }
-}
-
-struct ActionButtonsView: View {
-    @ObservedObject var viewModel: ExpenseViewModel
-    
-    var body: some View {
-        HStack(spacing: 20) {
-            ActionButton(title: "Load Expenses") {
-                viewModel.loadExpenses()
-            }
-            
-            ActionButton(title: "Show Summary") {
-                viewModel.showSummary()
-            }
-            
-            ActionButton(title: "Show Plot") {
-                viewModel.showPlot()
-            }
-
-            ActionButton(title: "Load Income") {
-                viewModel.loadIncome()
-            }
-            
-            ActionButton(title: "Clear") {
-                viewModel.clearDisplay()
-            }
-        }
-        .padding()
-        .frame(height: 60)
     }
 }
 
