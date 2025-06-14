@@ -8,5 +8,9 @@
 	<string>$(EXCHANGE_API_KEY)</string>
 	<key>fastAPIbaseURL</key>
 	<string>$(FASTAPI_BASE_URL)</string>
+	<key>fastAPIusername</key>
+	<string>$(FASTAPI_USERNAME)</string>
+	<key>fastAPIpassword</key>
+	<string>$(FASTAPI_PASSWORD)</string>
 </dict>
 </plist>

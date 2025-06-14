@@ -14,4 +14,18 @@ struct fastAPIConfig {
         }
         return key
     }
+
+    static var username: String {
+        guard let key = Bundle.main.object(forInfoDictionaryKey: "fastAPIusername") as? String else {
+            fatalError("FastAPI username not found in Info.plist")
+        }
+        return key
+    }
+
+    static var password: String {
+        guard let key = Bundle.main.object(forInfoDictionaryKey: "fastAPIpassword") as? String else {
+            fatalError("FastAPI password not found in Info.plist")
+        }
+        return key
+    }
 }
