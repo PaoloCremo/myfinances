@@ -24,7 +24,7 @@ class NetworkManager {
     
     func fetchSummary() async throws -> [SummaryItem] {
         try await performRequest(
-            path: "/expenses/summary",
+            path: "/expenses_summary",
             responseType: SummaryResponse.self
         ).summary
     }
