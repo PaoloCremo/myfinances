@@ -10,12 +10,13 @@ import SwiftUI
 struct CategoryDetailView: View {
     let summaryItem: SummaryItem
     let selectedCurrency: CurrencyType
+    @ObservedObject var viewModel: ExpenseViewModel
     @Environment(\.dismiss) private var dismiss
-    let viewModel: ExpenseViewModel //@ObservedObject
     private let networkManager = NetworkManager()
     
     var body: some View {
-        NavigationView {
+        // NavigationView {
+        ScrollView {
             VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 8) {
@@ -69,29 +70,22 @@ struct CategoryDetailView: View {
                     )
                 }
                 
-                Spacer()
+                // Spacer()
 
                 VStack(spacing: 20) {
-                    /*
-                     Text("Expenses\nType: \(summaryItem.type.capitalized)")
-                     .font(.title2)
-                     .fontWeight(.bold)
-                     .frame(maxWidth: .infinity, alignment: .leading)   
-                     }
-                     */
-                    
-                    
-                    Group {
-                        if viewModel.isLoading {
-                            LoadingView()
-                        } else if let error = viewModel.errorMessage {
-                            ErrorView(message: error)
-                        } else {
-                            ExpenseListView(viewModel: viewModel)
-                        }
+                    if viewModel.isLoading {
+                        LoadingView()
+                    } else if let error = viewModel.errorMessage {
+                        ErrorView(message: error)
+                    } else {
+                        ExpenseListView(viewModel: viewModel, 
+                                        data: .expensesByType(viewModel.expensesByType),
+                                        type: summaryItem.type)
                     }
+                    
+                }.onAppear {
+                    viewModel.loadExpensesByType(type: summaryItem.type)
                 }
-        }
             }
             .padding()
             .navigationTitle("Category Details")
@@ -104,6 +98,7 @@ struct CategoryDetailView: View {
                 }
             }
         }
+    }
 }
 
 struct DetailStatView: View {

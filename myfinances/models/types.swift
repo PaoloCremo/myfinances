@@ -40,7 +40,7 @@ enum CurrencyType: String, CaseIterable, Identifiable {
         }
     }
     
-    func getValue(from expense: Expense) -> Double? {
+    func getValue(from expense: any ExpenseProtocol) -> Double? {
         switch self {
         case .eur: return expense.eur
         case .usd: return expense.usd

@@ -100,7 +100,7 @@ struct ContentView: View {
             } else {
                 switch viewModel.currentView {
                 case .text:
-                    ExpenseListView(viewModel: viewModel)
+                    ExpenseListView(viewModel: viewModel, data: .expenses(viewModel.expenses))
                 case .summary:
                     SummaryListView(viewModel: viewModel)
                 case .plot:

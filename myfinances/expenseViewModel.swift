@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 class ExpenseViewModel: ObservableObject {
     @Published var expenses: [Expense] = []
+    @Published var expensesByType: [Expense] = []
     @Published var income: [Income] = []
     @Published var summaryData: [SummaryItem] = []
     @Published var isLoading = false
@@ -43,7 +44,7 @@ class ExpenseViewModel: ObservableObject {
                 expenses = result // Array(result.prefix(100))
                 currentView = .text
             } catch {
-                errorMessage = "Error loading expenses: \(error.localizedDescription)"
+                errorMessage = "Error HERE loading expenses: \(error.localizedDescription)"
             }
             isLoading = false
         }
@@ -95,14 +96,14 @@ class ExpenseViewModel: ObservableObject {
         }
     }
 
-    func loadExpensesByType() {
+    func loadExpensesByType(type: String) {
         isLoading = true
         errorMessage = nil
         
         Task {
             do {
-                let result = try await networkManager.fetchExpensesByType(type: "out")//summaryItem.type)
-                expenses = result
+                let result = try await networkManager.fetchExpensesByType(type: type)//summaryItem.type)
+                expensesByType = result
                 currentView = .text
             } catch {
                 errorMessage = "Error loading expenses: \(error.localizedDescription)"
