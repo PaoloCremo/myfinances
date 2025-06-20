@@ -40,7 +40,7 @@ class ExpenseViewModel: ObservableObject {
         Task {
             do {
                 let result = try await networkManager.fetchExpenses()
-                expenses = Array(result.prefix(100))
+                expenses = result // Array(result.prefix(100))
                 currentView = .text
             } catch {
                 errorMessage = "Error loading expenses: \(error.localizedDescription)"
@@ -86,10 +86,26 @@ class ExpenseViewModel: ObservableObject {
         Task {
             do {
                 let result = try await networkManager.fetchIncome()
-                income = Array(result.prefix(100))
+                income = result // Array(result.prefix(100))
                 currentView = .income
             } catch {
                 errorMessage = "Error loading incomes: \(error.localizedDescription)"
+            }
+            isLoading = false
+        }
+    }
+
+    func loadExpensesByType() {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let result = try await networkManager.fetchExpensesByType(type: "out")//summaryItem.type)
+                expenses = result
+                currentView = .text
+            } catch {
+                errorMessage = "Error loading expenses: \(error.localizedDescription)"
             }
             isLoading = false
         }

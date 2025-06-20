@@ -11,6 +11,8 @@ struct CategoryDetailView: View {
     let summaryItem: SummaryItem
     let selectedCurrency: CurrencyType
     @Environment(\.dismiss) private var dismiss
+    let viewModel: ExpenseViewModel //@ObservedObject
+    private let networkManager = NetworkManager()
     
     var body: some View {
         NavigationView {
@@ -68,6 +70,28 @@ struct CategoryDetailView: View {
                 }
                 
                 Spacer()
+
+                VStack(spacing: 20) {
+                    /*
+                     Text("Expenses\nType: \(summaryItem.type.capitalized)")
+                     .font(.title2)
+                     .fontWeight(.bold)
+                     .frame(maxWidth: .infinity, alignment: .leading)   
+                     }
+                     */
+                    
+                    
+                    Group {
+                        if viewModel.isLoading {
+                            LoadingView()
+                        } else if let error = viewModel.errorMessage {
+                            ErrorView(message: error)
+                        } else {
+                            ExpenseListView(viewModel: viewModel)
+                        }
+                    }
+                }
+        }
             }
             .padding()
             .navigationTitle("Category Details")
@@ -80,7 +104,6 @@ struct CategoryDetailView: View {
                 }
             }
         }
-    }
 }
 
 struct DetailStatView: View {

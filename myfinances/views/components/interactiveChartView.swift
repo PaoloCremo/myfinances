@@ -67,9 +67,11 @@ struct InteractiveChartView: View {
         .sheet(isPresented: $showingDetail) {
             if let selectedCategory = selectedCategory,
                let selectedItem = summaryData.first(where: { $0.type == selectedCategory }) {
+                // Present the detail view for the selected category
                 CategoryDetailView(
                     summaryItem: selectedItem,
-                    selectedCurrency: selectedCurrency
+                    selectedCurrency: selectedCurrency,
+                    viewModel: ExpenseViewModel()
                 )
             }
         }

@@ -21,6 +21,13 @@ class NetworkManager {
             responseType: ExpenseResponse.self
         ).expenses
     }
+
+     func fetchExpensesByType(type: String) async throws -> [Expense] {
+        try await performRequest(
+            path: "/expenses/\(type)",
+            responseType: ExpenseResponse.self
+        ).expenses
+    }
     
     func fetchSummary() async throws -> [SummaryItem] {
         try await performRequest(
