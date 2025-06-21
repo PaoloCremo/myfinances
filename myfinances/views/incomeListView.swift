@@ -16,6 +16,7 @@ struct IncomeListView: View {
             .padding()
         }
         .refreshable {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             viewModel.loadIncome()
         }
     }
