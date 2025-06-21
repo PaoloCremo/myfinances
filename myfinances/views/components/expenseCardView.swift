@@ -23,18 +23,6 @@ struct ExpenseCardView: View {
     let selectedCurrency: CurrencyType
     @State private var isExpanded = false
     
-    /*
-    init(expenseData: ExpenseListData, selectedCurrency: CurrencyType) {
-        switch expenseData {
-        case .expenses(let expenses):
-            self.expense = expenses // .first ?? expenses[0]
-        case .expensesByType(let expensesByType):
-            self.expense = expensesByType // .first ?? expensesByType[0]
-        }
-        self.selectedCurrency = selectedCurrency
-    }
-     */
-    
     var body: some View {
         VStack(spacing: 0) {
             // Main card content
