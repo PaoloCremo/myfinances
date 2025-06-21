@@ -14,6 +14,8 @@ struct CategoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     private let networkManager = NetworkManager()
     
+    @State private var showStickyHeader = false
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -29,6 +31,7 @@ struct CategoryDetailView: View {
                     Text(summaryItem.type.capitalized)
                         .font(.largeTitle)
                         .fontWeight(.bold)
+                        .id("title")
                     
                     Text("\(summaryItem.numberOfItems) transactions")
                         .font(.subheadline)
@@ -69,8 +72,6 @@ struct CategoryDetailView: View {
                     )
                 }
                 
-//                 Spacer() // this "crashes" the expandable view
-
                 VStack(spacing: 20) {
                     if viewModel.isLoading {
                         LoadingView()
@@ -81,22 +82,70 @@ struct CategoryDetailView: View {
                                         data: .expensesByType(viewModel.expensesByType),
                                         type: summaryItem.type)
                     }
-                    
                 }.onAppear {
                     viewModel.loadExpensesByType(type: summaryItem.type)
                 }
             }
             .padding()
-            .navigationTitle("Category Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+            .background(GeometryReader { geometry in
+                Color.clear.preference(
+                    key: ViewOffsetKey.self,
+                    value: -geometry.frame(in: .named("scroll")).minY
+                )
+            })
+        }
+        .coordinateSpace(name: "scroll")
+        .onPreferenceChange(ViewOffsetKey.self) { offset in
+            withAnimation {
+                // Show sticky header when scrolled down 150 points
+                showStickyHeader = offset > 150
+            }
+        }
+        .overlay(
+            Group {
+                if showStickyHeader {
+                    VStack {
+                        HStack {
+                            Spacer()
+
+                            Text("\(summaryItem.type.capitalized) ")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            Image(systemName: Icon.categoryIcon(for: summaryItem.type))
+                                .background(Color.categoryColor(for: summaryItem.type))
+                                // .clipShape(Circle())
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                // .padding(.leading, 8)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                        .background(.white)
+                        .transition(.move(edge: .top))
                     }
+                }
+            },
+            alignment: .top
+        )
+        .navigationTitle("Category Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
                 }
             }
         }
+    }
+}
+
+struct ViewOffsetKey: PreferenceKey {
+    typealias Value = CGFloat
+    static var defaultValue = CGFloat.zero
+    static func reduce(value: inout Value, nextValue: () -> Value) {
+        value += nextValue()
     }
 }
 
