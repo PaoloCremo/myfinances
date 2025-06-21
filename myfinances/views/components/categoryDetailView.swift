@@ -15,7 +15,6 @@ struct CategoryDetailView: View {
     private let networkManager = NetworkManager()
     
     var body: some View {
-        // NavigationView {
         ScrollView {
             VStack(spacing: 20) {
                 // Header
@@ -70,7 +69,7 @@ struct CategoryDetailView: View {
                     )
                 }
                 
-                // Spacer()
+//                 Spacer() // this "crashes" the expandable view
 
                 VStack(spacing: 20) {
                     if viewModel.isLoading {

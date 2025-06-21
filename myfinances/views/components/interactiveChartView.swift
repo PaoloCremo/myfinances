@@ -6,6 +6,8 @@ struct InteractiveChartView: View {
     let selectedCurrency: CurrencyType
     @State private var selectedCategory: String? = nil
     @State private var showingDetail = false
+    @ObservedObject var viewModel: ExpenseViewModel
+    @StateObject private var detailViewModel = ExpenseViewModel()
     
     var body: some View {
         VStack(spacing: 20) {
@@ -71,8 +73,10 @@ struct InteractiveChartView: View {
                 CategoryDetailView(
                     summaryItem: selectedItem,
                     selectedCurrency: selectedCurrency,
-                    viewModel: ExpenseViewModel()
-                )
+                    viewModel: detailViewModel
+                ).onAppear {
+                    detailViewModel.selectedCurrency = selectedCurrency
+                }
             }
         }
     }

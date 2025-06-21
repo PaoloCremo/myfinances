@@ -104,7 +104,7 @@ class ExpenseViewModel: ObservableObject {
             do {
                 let result = try await networkManager.fetchExpensesByType(type: type)//summaryItem.type)
                 expensesByType = result
-                currentView = .text
+                // currentView = .types
             } catch {
                 errorMessage = "Error loading expenses: \(error.localizedDescription)"
             }
