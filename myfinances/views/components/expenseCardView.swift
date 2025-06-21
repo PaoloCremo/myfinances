@@ -1,7 +1,25 @@
 import SwiftUI
 
+protocol ExpenseProtocol {
+    var date: String { get }
+    var type: String { get }
+    var descriptionText: String { get }
+    var eur: Double? { get }
+    var usd: Double? { get }
+    var cad: Double? { get }
+    var pln: Double? { get }
+    var other: Double? { get }
+    var daily_total: Double? { get }
+    var bank: String? { get }
+}
+
+enum ExpenseListData {
+    case expenses([Expense])
+    case expensesByType([Expense])
+}
+
 struct ExpenseCardView: View {
-    let expense: Expense
+    let expense: any ExpenseProtocol
     let selectedCurrency: CurrencyType
     @State private var isExpanded = false
     
@@ -91,7 +109,7 @@ struct ExpenseCardView: View {
 }
 
 struct ExpandedCurrencyView: View {
-    let expense: Expense
+    let expense: any ExpenseProtocol
     let selectedCurrency: CurrencyType
     
     var body: some View {

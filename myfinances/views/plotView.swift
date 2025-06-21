@@ -6,7 +6,8 @@ struct PlotView: View {
     var body: some View {
         InteractiveChartView(
             summaryData: viewModel.summaryData,
-            selectedCurrency: viewModel.selectedCurrency
+            selectedCurrency: viewModel.selectedCurrency,
+            viewModel: viewModel
         )
         .padding()
     }
